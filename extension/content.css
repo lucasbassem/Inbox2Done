@@ -1,0 +1,28 @@
+#inbox2done-analyze-current,
+#inbox2done-analyze-today {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: none;
+  border-radius: 8px;
+  background: #1a73e8;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#inbox2done-analyze-today {
+  background: #188038;
+}
+
+.inbox2done-email-card {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.inbox2done-email-card p {
+  margin: 6px 0;
+}

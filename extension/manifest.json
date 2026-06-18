@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Inbox2Done",
+  "version": "0.1.0",
+  "description": "Summarize Gmail messages and recommend next actions.",
+  "permissions": [],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "http://localhost:4000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ]
+}
