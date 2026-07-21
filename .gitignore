@@ -46,3 +46,14 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+@'
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+backend/.venv/
+backend/htmlcov/
+'@ | Add-Content .gitignore
