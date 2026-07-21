@@ -14,6 +14,10 @@ class Settings(BaseSettings):
         description="Frontend origin allowed to call the API.",
     )
 
+    database_url: str = Field(
+        default="postgresql+psycopg://inbox2done:inbox2done_dev@localhost:5432/inbox2done"
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

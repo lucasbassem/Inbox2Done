@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: inbox2done-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: inbox2done
+      POSTGRES_PASSWORD: inbox2done_dev
+      POSTGRES_DB: inbox2done
+    ports:
+      - "5432:5432"
+    volumes:
+      - inbox2done_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inbox2done -d inbox2done"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  inbox2done_postgres_data:
