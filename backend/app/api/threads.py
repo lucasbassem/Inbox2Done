@@ -2,12 +2,16 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.exceptions import AppError
 from app.db.session import get_db
 from app.models.email_thread import EmailThread
-from app.schemas.email_thread import EmailThreadPage, EmailThreadResponse
+from app.schemas.email_thread import (
+    EmailThreadDetailResponse,
+    EmailThreadPage,
+    EmailThreadResponse,
+)
 
 router = APIRouter(
     prefix="/api/threads",
@@ -52,12 +56,18 @@ def list_threads(
     )
 
 
-@router.get("/{thread_id}", response_model=EmailThreadResponse)
+@router.get("/{thread_id}", response_model=EmailThreadDetailResponse)
 def get_thread(
     thread_id: int,
     database: Annotated[Session, Depends(get_db)],
-) -> EmailThreadResponse:
-    thread = database.get(EmailThread, thread_id)
+) -> EmailThreadDetailResponse:
+    statement = (
+        select(EmailThread)
+        .options(selectinload(EmailThread.messages))
+        .where(EmailThread.id == thread_id)
+    )
+
+    thread = database.scalar(statement)
 
     if thread is None:
         raise AppError(
@@ -67,4 +77,4 @@ def get_thread(
             details={"thread_id": thread_id},
         )
 
-    return EmailThreadResponse.model_validate(thread)
+    return EmailThreadDetailResponse.model_validate(thread)

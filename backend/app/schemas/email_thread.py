@@ -3,6 +3,8 @@ from math import ceil
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.email_message import EmailMessageResponse
+
 
 class EmailThreadResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -17,6 +19,10 @@ class EmailThreadResponse(BaseModel):
     latest_message_at: datetime
     created_at: datetime
     updated_at: datetime
+
+
+class EmailThreadDetailResponse(EmailThreadResponse):
+    messages: list[EmailMessageResponse]
 
 
 class EmailThreadPage(BaseModel):

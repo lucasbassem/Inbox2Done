@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models.email_message import EmailMessage
 from app.models.email_thread import EmailThread
 
 test_engine = create_engine(
@@ -40,6 +41,7 @@ client = TestClient(app)
 
 def clear_threads() -> None:
     with TestSessionLocal() as database:
+        database.query(EmailMessage).delete()
         database.query(EmailThread).delete()
         database.commit()
 
@@ -150,16 +152,26 @@ def test_get_thread_detail() -> None:
     clear_threads()
     seed_threads(1)
 
-    list_response = client.get(
-        "/api/threads",
-        params={
-            "page": 1,
-            "page_size": 20,
-            "user_id": 1,
-        },
-    )
+    with TestSessionLocal() as database:
+        thread = database.query(EmailThread).first()
 
-    thread_id = list_response.json()["items"][0]["id"]
+        assert thread is not None
+
+        database.add(
+            EmailMessage(
+                thread_id=thread.id,
+                gmail_message_id="detail-message-001",
+                sender="sender@example.com",
+                recipients="recipient@example.com",
+                subject="Thread detail message",
+                snippet="Stored message snippet",
+                body_text="Stored message body",
+                sent_at=datetime.now(UTC),
+            )
+        )
+
+        database.commit()
+        thread_id = thread.id
 
     response = client.get(f"/api/threads/{thread_id}")
 
@@ -171,6 +183,10 @@ def test_get_thread_detail() -> None:
     assert body["gmail_thread_id"] == "gmail-thread-0"
     assert body["subject"] == "Thread 0"
     assert body["message_count"] == 1
+
+    assert len(body["messages"]) == 1
+    assert body["messages"][0]["gmail_message_id"] == "detail-message-001"
+    assert body["messages"][0]["body_text"] == "Stored message body"
 
 
 def test_get_missing_thread_returns_structured_404() -> None:
