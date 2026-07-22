@@ -51,9 +51,7 @@ def seed_threads() -> None:
         )
 
         new_threads = [
-            thread
-            for thread in demo_threads
-            if thread.gmail_thread_id not in existing_ids
+            thread for thread in demo_threads if thread.gmail_thread_id not in existing_ids
         ]
 
         database.add_all(new_threads)

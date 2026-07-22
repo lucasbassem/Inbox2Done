@@ -144,3 +144,48 @@ def test_invalid_page_is_rejected() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_get_thread_detail() -> None:
+    clear_threads()
+    seed_threads(1)
+
+    list_response = client.get(
+        "/api/threads",
+        params={
+            "page": 1,
+            "page_size": 20,
+            "user_id": 1,
+        },
+    )
+
+    thread_id = list_response.json()["items"][0]["id"]
+
+    response = client.get(f"/api/threads/{thread_id}")
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["id"] == thread_id
+    assert body["gmail_thread_id"] == "gmail-thread-0"
+    assert body["subject"] == "Thread 0"
+    assert body["message_count"] == 1
+
+
+def test_get_missing_thread_returns_structured_404() -> None:
+    clear_threads()
+
+    response = client.get("/api/threads/999999")
+
+    assert response.status_code == 404
+
+    body = response.json()
+
+    assert body == {
+        "error": "thread_not_found",
+        "message": "The requested email thread was not found.",
+        "details": {
+            "thread_id": 999999,
+        },
+    }
