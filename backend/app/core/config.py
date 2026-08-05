@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/1"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-5.6"
 
     frontend_origin: str = Field(
         default="http://localhost:5173",

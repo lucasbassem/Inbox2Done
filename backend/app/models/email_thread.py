@@ -10,6 +10,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.email_message import EmailMessage
+    from app.models.thread_analysis import ThreadAnalysis
 
 
 class EmailThread(Base):
@@ -73,4 +74,10 @@ class EmailThread(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by="EmailMessage.sent_at",
+    )
+    analyses: Mapped[list[ThreadAnalysis]] = relationship(
+        back_populates="thread",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ThreadAnalysis.created_at",
     )
