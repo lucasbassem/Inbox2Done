@@ -4,7 +4,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
+from app.api.auth import router as auth_router
 from app.api.health import router as health_router
 from app.api.threads import router as threads_router
 from app.core.config import get_settings
@@ -44,6 +46,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.session_secret_key,
+    same_site="lax",
+    https_only=settings.app_env == "production",
+)
+
 register_exception_handlers(app)
 app.include_router(health_router)
 app.include_router(threads_router)
+app.include_router(auth_router)

@@ -6,8 +6,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "Inbox2Done API"
-    app_environment: str = "development"
     api_prefix: str = "/api"
+    session_secret_key: str = "development-secret-change-me"
+    app_env: str = "development"
 
     frontend_origin: str = Field(
         default="http://localhost:5173",
@@ -25,7 +26,14 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://127.0.0.1:8000/api/auth/google/callback"
+
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+settings = Settings()
