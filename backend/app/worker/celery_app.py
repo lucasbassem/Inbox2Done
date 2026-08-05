@@ -8,6 +8,7 @@ celery_app = Celery(
     backend=settings.celery_result_backend,
     include=[
         "app.worker.tasks.gmail",
+        "app.worker.tasks.analysis",
     ],
 )
 

@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+from app.api.analysis import router as analysis_router
 from app.api.auth import router as auth_router
 from app.api.gmail import router as gmail_router
 from app.api.health import router as health_router
@@ -61,3 +62,4 @@ app.include_router(threads_router)
 app.include_router(auth_router)
 app.include_router(gmail_router)
 app.include_router(jobs_router)
+app.include_router(analysis_router)

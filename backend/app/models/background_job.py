@@ -19,6 +19,7 @@ class BackgroundJobStatus(StrEnum):
 
 class BackgroundJobType(StrEnum):
     GMAIL_SYNC = "gmail_sync"
+    THREAD_ANALYSIS = "thread_analysis"
 
 
 class BackgroundJob(Base):
