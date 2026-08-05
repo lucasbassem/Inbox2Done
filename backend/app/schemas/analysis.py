@@ -79,3 +79,16 @@ class ThreadAnalysisResponse(BaseModel):
     updated_at: datetime
     action_items: list[ActionItemResponse]
     suggested_replies: list[SuggestedReplyResponse]
+
+
+class ThreadAnalysisQueuedResponse(BaseModel):
+    job_id: int
+    task_id: str
+    status: str
+
+
+class ActionItemUpdate(BaseModel):
+    status: Literal["open", "in_progress", "completed"] | None = None
+    priority: Literal["low", "medium", "high", "urgent"] | None = None
+    owner: str | None = None
+    due_at: datetime | None = None
