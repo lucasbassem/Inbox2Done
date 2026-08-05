@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import sessionmaker
@@ -35,7 +36,6 @@ def override_get_db():
         database.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
@@ -44,6 +44,23 @@ def clear_threads() -> None:
         database.query(EmailMessage).delete()
         database.query(EmailThread).delete()
         database.commit()
+
+@pytest.fixture(autouse=True)
+def isolate_thread_database():
+    previous_override = app.dependency_overrides.get(get_db)
+
+    app.dependency_overrides[get_db] = override_get_db
+    clear_threads()
+
+    try:
+        yield
+    finally:
+        clear_threads()
+
+        if previous_override is None:
+            app.dependency_overrides.pop(get_db, None)
+        else:
+            app.dependency_overrides[get_db] = previous_override
 
 
 def seed_threads(count: int = 5) -> None:

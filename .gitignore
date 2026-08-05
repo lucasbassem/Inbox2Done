@@ -14,6 +14,7 @@ server/dist/
 .env
 .env.*
 !.env.example
+!.env.docker.example
 client/.env
 server/.env
 
@@ -56,4 +57,40 @@ __pycache__/
 .ruff_cache/
 backend/.venv/
 backend/htmlcov/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+credentials.json
+token.json
+
+# Frontend
+node_modules/
+dist/
+.vite/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+
 '@ | Add-Content .gitignore
