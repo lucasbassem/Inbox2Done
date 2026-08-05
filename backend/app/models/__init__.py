@@ -1,3 +1,8 @@
+from app.models.background_job import (
+    BackgroundJob,
+    BackgroundJobStatus,
+    BackgroundJobType,
+)
 from app.models.email_message import EmailMessage
 from app.models.email_thread import EmailThread
 from app.models.oauth_token import OAuthToken
@@ -8,4 +13,7 @@ __all__ = [
     "EmailThread",
     "OAuthToken",
     "User",
+    "BackgroundJob",
+    "BackgroundJobStatus",
+    "BackgroundJobType",
 ]

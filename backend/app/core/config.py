@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     session_secret_key: str = "development-secret-change-me"
     app_env: str = "development"
+    redis_url: str = "redis://localhost:6379/0"
+    celery_broker_url: str = "redis://localhost:6379/0"
+    celery_result_backend: str = "redis://localhost:6379/1"
 
     frontend_origin: str = Field(
         default="http://localhost:5173",

@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -9,6 +9,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.api.auth import router as auth_router
 from app.api.gmail import router as gmail_router
 from app.api.health import router as health_router
+from app.api.jobs import router as jobs_router
 from app.api.threads import router as threads_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
@@ -59,3 +60,4 @@ app.include_router(health_router)
 app.include_router(threads_router)
 app.include_router(auth_router)
 app.include_router(gmail_router)
+app.include_router(jobs_router)
