@@ -1,0 +1,30 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Tests and local tooling are not required in the runtime image
+tests/
+scripts/
+
+# Version control and editors
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
