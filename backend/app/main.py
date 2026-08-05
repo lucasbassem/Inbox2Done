@@ -26,7 +26,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     logger.info(
         "Starting %s in %s mode",
         settings.app_name,
-        settings.app_environment,
+        settings.app_env,
     )
     yield
 
