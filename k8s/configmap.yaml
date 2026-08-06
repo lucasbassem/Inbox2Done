@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inbox2done-config
+  namespace: inbox2done
+  labels:
+    app.kubernetes.io/name: inbox2done
+    app.kubernetes.io/part-of: inbox2done
+data:
+  APP_NAME: "Inbox2Done API"
+  APP_ENV: "development"
+  API_PREFIX: "/api"
+  FRONTEND_ORIGIN: "http://localhost:5173"
+  REDIS_URL: "redis://redis:6379/0"
+  CELERY_BROKER_URL: "redis://redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+  OPENAI_MODEL: "gpt-5.6"
+  GOOGLE_REDIRECT_URI: "http://localhost:8000/api/auth/google/callback"
