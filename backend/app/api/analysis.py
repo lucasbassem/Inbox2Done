@@ -17,6 +17,10 @@ from app.schemas.analysis import (
     ThreadAnalysisQueuedResponse,
     ThreadAnalysisResponse,
 )
+from app.services.entitlements import (
+    UsageLimitExceeded,
+    consume_thread_analysis,
+)
 from app.worker.tasks.analysis import analyze_thread_task
 
 router = APIRouter(
@@ -69,14 +73,16 @@ def queue_thread_analysis(
     existing_job = database.scalar(
         select(BackgroundJob).where(
             BackgroundJob.user_id == user_id,
-            BackgroundJob.job_type == BackgroundJobType.THREAD_ANALYSIS.value,
+            BackgroundJob.job_type
+            == BackgroundJobType.THREAD_ANALYSIS.value,
             BackgroundJob.status.in_(
                 [
                     BackgroundJobStatus.QUEUED.value,
                     BackgroundJobStatus.RUNNING.value,
                 ]
             ),
-            BackgroundJob.parameters["thread_id"].as_integer() == thread_id,
+            BackgroundJob.parameters["thread_id"].as_integer()
+            == thread_id,
         )
     )
 
@@ -92,6 +98,29 @@ def queue_thread_analysis(
             },
         )
 
+    try:
+        entitlement = consume_thread_analysis(
+            database,
+            user_id,
+        )
+    except UsageLimitExceeded as exc:
+        database.rollback()
+
+        raise AppError(
+            status_code=429,
+            error="usage_limit_reached",
+            message=(
+                "You have used all of your AI analyses available "
+                "for today."
+            ),
+            details={
+                "plan": exc.plan,
+                "daily_limit": exc.limit,
+                "used": exc.used,
+                "remaining": 0,
+            },
+        ) from exc
+
     job = BackgroundJob(
         user_id=user_id,
         job_type=BackgroundJobType.THREAD_ANALYSIS.value,
@@ -100,10 +129,13 @@ def queue_thread_analysis(
         parameters={
             "thread_id": thread_id,
             "force": force,
+            "plan": entitlement.plan,
         },
     )
 
     database.add(job)
+
+    # Usage event + background job are committed together.
     database.commit()
     database.refresh(job)
 
