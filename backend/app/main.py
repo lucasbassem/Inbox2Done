@@ -12,6 +12,7 @@ from app.api.gmail import router as gmail_router
 from app.api.health import router as health_router
 from app.api.jobs import router as jobs_router
 from app.api.threads import router as threads_router
+from app.api.billing import router as billing_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 
@@ -63,3 +64,4 @@ app.include_router(auth_router)
 app.include_router(gmail_router)
 app.include_router(jobs_router)
 app.include_router(analysis_router)
+app.include_router(billing_router)
