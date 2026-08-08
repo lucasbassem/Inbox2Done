@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -10,6 +11,8 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.oauth_token import OAuthToken
+    from app.models.subscription import Subscription
+    from app.models.usage_event import UsageEvent
 
 
 class User(Base):
@@ -59,4 +62,17 @@ class User(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
         uselist=False,
+    )
+
+    subscription: Mapped[Subscription | None] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        uselist=False,
+    )
+
+    usage_events: Mapped[list[UsageEvent]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
