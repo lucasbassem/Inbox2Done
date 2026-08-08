@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     celery_result_backend: str = "redis://localhost:6379/1"
     openai_api_key: str = ""
     openai_model: str = "gpt-5.6"
+    stripe_secret_key: str = ""
+    stripe_pro_price_id: str = ""
+    stripe_webhook_secret: str = ""
 
     frontend_origin: str = Field(
         default="http://localhost:5173",

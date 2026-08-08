@@ -87,6 +87,9 @@ $optional = @{
     OPENAI_API_KEY = Get-EnvironmentValue $environment "OPENAI_API_KEY"
     GOOGLE_CLIENT_ID = Get-EnvironmentValue $environment "GOOGLE_CLIENT_ID"
     GOOGLE_CLIENT_SECRET = Get-EnvironmentValue $environment "GOOGLE_CLIENT_SECRET"
+    STRIPE_SECRET_KEY = Get-EnvironmentValue $environment "STRIPE_SECRET_KEY"
+    STRIPE_PRO_PRICE_ID = Get-EnvironmentValue $environment "STRIPE_PRO_PRICE_ID"
+    STRIPE_WEBHOOK_SECRET = Get-EnvironmentValue $environment "STRIPE_WEBHOOK_SECRET"
 }
 foreach ($entry in $optional.GetEnumerator()) {
     if (-not [string]::IsNullOrWhiteSpace($entry.Value)) { $secretArguments += "--from-literal=$($entry.Key)=$($entry.Value)" }
