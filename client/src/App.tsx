@@ -41,6 +41,10 @@ type BillingStatus = {
   remaining_today: number;
 };
 
+type CheckoutSession = {
+  checkout_url: string;
+};
+
 type EmailThread = {
   id: number;
   user_id: number;
@@ -121,6 +125,7 @@ function App() {
   const [threadLoading, setThreadLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
 
   const [error, setError] = useState("");
 
@@ -174,6 +179,32 @@ function App() {
     const data: ThreadPage = await response.json();
     setThreads(data.items);
   }
+
+  async function upgradeToPro() {
+  setUpgrading(true);
+  setError("");
+
+  try {
+    const response = await apiFetch("/api/billing/checkout", {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      throw new Error("Could not start Stripe Checkout.");
+    }
+
+    const data: CheckoutSession = await response.json();
+
+    window.location.assign(data.checkout_url);
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Could not start Stripe Checkout.",
+    );
+    setUpgrading(false);
+  }
+}
 
   async function loadDashboard() {
     setLoading(true);
@@ -472,7 +503,6 @@ function App() {
                     Connect Google to synchronize
                     your inbox.
                   </Text>
-
                   <Button
                     leftSection={
                       <IconBrandGoogle
@@ -571,8 +601,8 @@ function App() {
 
                     {billing?.plan !== "pro" && (
                       <Button
-                        variant="light"
-                        disabled
+                        onClick={upgradeToPro}
+                        loading={upgrading}
                       >
                         Upgrade to Pro
                       </Button>
