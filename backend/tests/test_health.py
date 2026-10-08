@@ -1,4 +1,4 @@
-﻿from collections.abc import Generator
+from collections.abc import Generator
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
@@ -15,6 +15,7 @@ def override_healthy_db() -> Generator[Session, None, None]:
 
 
 client = TestClient(app)
+
 
 def restore_db_override(previous_override) -> None:
     if previous_override is None:

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: inbox2done
+  labels:
+    app.kubernetes.io/name: inbox2done
+    app.kubernetes.io/part-of: inbox2done

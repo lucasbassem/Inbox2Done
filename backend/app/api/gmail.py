@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.auth import lock_job_owner, require_user_id
 from app.core.exceptions import AppError
 from app.db.session import get_db
 from app.models.background_job import (
@@ -12,6 +13,7 @@ from app.models.background_job import (
     BackgroundJobType,
 )
 from app.schemas.job import GmailSyncQueuedResponse
+from app.services.job_dispatch import dispatch_job
 from app.worker.tasks.gmail import sync_gmail_task
 
 router = APIRouter(
@@ -30,14 +32,8 @@ def queue_gmail_sync(
     database: Annotated[Session, Depends(get_db)],
     max_threads: Annotated[int, Query(ge=1, le=100)] = 10,
 ) -> GmailSyncQueuedResponse:
-    user_id = request.session.get("user_id")
-
-    if not isinstance(user_id, int):
-        raise AppError(
-            status_code=401,
-            error="authentication_required",
-            message="Connect a Google account before synchronizing Gmail.",
-        )
+    user_id = require_user_id(request)
+    lock_job_owner(database, user_id)
 
     existing_job = database.scalar(
         select(BackgroundJob).where(
@@ -77,17 +73,16 @@ def queue_gmail_sync(
     database.commit()
     database.refresh(job)
 
-    task = sync_gmail_task.delay(
-        job_id=job.id,
+    task_id = dispatch_job(
+        database,
+        job,
+        sync_gmail_task,
         user_id=user_id,
         max_threads=max_threads,
     )
 
-    job.task_id = task.id
-    database.commit()
-
     return GmailSyncQueuedResponse(
         job_id=job.id,
-        task_id=task.id,
+        task_id=task_id,
         status=job.status,
     )

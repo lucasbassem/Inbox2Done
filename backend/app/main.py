@@ -6,12 +6,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+from app.api.actions import router as actions_router
 from app.api.analysis import router as analysis_router
 from app.api.auth import router as auth_router
+from app.api.billing import router as billing_router
 from app.api.gmail import router as gmail_router
 from app.api.health import router as health_router
 from app.api.jobs import router as jobs_router
 from app.api.threads import router as threads_router
+from app.api.today import router as today_router
+from app.core.browser_security import check_browser_origin
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 
@@ -57,9 +61,14 @@ app.add_middleware(
 )
 
 register_exception_handlers(app)
+app.middleware("http")(check_browser_origin)
 app.include_router(health_router)
 app.include_router(threads_router)
 app.include_router(auth_router)
 app.include_router(gmail_router)
 app.include_router(jobs_router)
 app.include_router(analysis_router)
+app.include_router(actions_router)
+app.include_router(billing_router)
+
+app.include_router(today_router)

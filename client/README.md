@@ -1,73 +1,29 @@
-# React + TypeScript + Vite
+# Inbox2Done web client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite. See the [root README](../README.md) for complete setup.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+npm ci
+npm run dev
+npm test
+npm run lint
+npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Use `http://localhost:5173` during development. Vite proxies `/api` and `/health` to `127.0.0.1:8000`. Nginx does the same in the web container using `API_UPSTREAM` (default `api:8000`). There are no frontend secrets or API-key configuration fields.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The application requires a real authenticated backend session. Test mocks are confined to the test suites. Playwright writes desktop and mobile screenshots into ignored `test-results/`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Current experience
+
+`App.tsx` checks the authenticated session and shows Google sign-in. `Today.tsx` loads today's Primary inbox using the browser time zone, then presents one daily briefing after the user clicks Analyze.
+
+- Page load, Refresh today, and local-day rollover fetch Gmail without requesting new AI analysis.
+- What matters today combines important summaries; Your action items combines tasks with saved completion state.
+- Source subjects and suggested replies are expandable. Copying a reply does not send email or create a Gmail draft.
+- API job polling updates partial progress. Saved unchanged analyses are reused.
+- Legacy billing endpoints remain on the backend; this screen does not include billing controls.
+
+Browser tests use synthetic mail and mocked API responses. They verify the explicit analysis action, task persistence across reload, copying replies, mobile overflow, and sign-out.
