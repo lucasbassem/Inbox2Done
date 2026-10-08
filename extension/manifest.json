@@ -2,11 +2,10 @@
   "manifest_version": 3,
   "name": "Inbox2Done",
   "version": "0.1.0",
-  "description": "Summarize Gmail messages and recommend next actions.",
+  "description": "Open your Inbox2Done workspace from Gmail.",
   "permissions": [],
   "host_permissions": [
-    "https://mail.google.com/*",
-    "http://localhost:4000/*"
+    "https://mail.google.com/*"
   ],
   "content_scripts": [
     {
