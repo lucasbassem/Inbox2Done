@@ -1,96 +1,33 @@
-# Dependencies
 node_modules/
-client/node_modules/
-server/node_modules/
-
-# Build output
 dist/
 build/
-out/
-client/dist/
-server/dist/
-
-# Environment variables and secrets
+*.egg-info/
 .env
 .env.*
 !.env.example
 !.env.docker.example
-client/.env
-server/.env
-
-# Logs
+*.pem
+credentials.json
+token.json
 *.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-bun-debug.log*
-
-# Coverage
 coverage/
-*.lcov
-
-# TypeScript/cache
+htmlcov/
+.coverage
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
 *.tsbuildinfo
 .vite/
 .cache/
 .eslintcache
-
-# IDE files
-.vscode/
-.idea/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Temporary files
-*.tmp
-*.temp
-
-@'
-
-# Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.ruff_cache/
-backend/.venv/
-backend/htmlcov/
-
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-.pytest_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-.venv/
-venv/
-
-# Environment and secrets
-.env
-.env.*
-!.env.example
-*.pem
-credentials.json
-token.json
-
-# Frontend
-node_modules/
-dist/
-.vite/
-
-# IDE and OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-
-# Logs and temporary files
-*.log
 tmp/
 temp/
-
-'@ | Add-Content .gitignore
+playwright-report/
+test-results/

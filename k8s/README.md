@@ -10,6 +10,14 @@ This local kind deployment includes:
 - CPU and memory requests and limits
 - non-root application containers
 - deploy-time Secret creation from the ignored `.env.docker` file
+- a React/Nginx web deployment that proxies the API on the same origin
+
+## Open the application
+
+After deploying, run `kubectl port-forward service/inbox2done-web 8080:80 -n inbox2done`
+and open `http://localhost:8080`. Register
+`http://localhost:8080/api/auth/google/callback` in Google Cloud.
+The API-only port-forward below remains useful for debugging.
 
 ## Deploy
 

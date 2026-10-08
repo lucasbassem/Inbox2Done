@@ -70,6 +70,8 @@ $databaseUrl = "postgresql+psycopg://$([Uri]::EscapeDataString($postgresUser)):$
 Write-Host "Building and loading $Image..."
 Invoke-Checked docker build -t $Image (Join-Path $repoRoot "backend")
 Invoke-Checked kind load docker-image $Image --name $ClusterName
+Invoke-Checked docker build -t inbox2done-web:k8s (Join-Path $repoRoot "client")
+Invoke-Checked kind load docker-image inbox2done-web:k8s --name $ClusterName
 
 Invoke-Checked kubectl apply -f (Join-Path $repoRoot "k8s\namespace.yaml")
 
@@ -84,6 +86,7 @@ $secretArguments = @(
 )
 
 $optional = @{
+    TOKEN_ENCRYPTION_KEY = Get-EnvironmentValue $environment "TOKEN_ENCRYPTION_KEY"
     OPENAI_API_KEY = Get-EnvironmentValue $environment "OPENAI_API_KEY"
     GOOGLE_CLIENT_ID = Get-EnvironmentValue $environment "GOOGLE_CLIENT_ID"
     GOOGLE_CLIENT_SECRET = Get-EnvironmentValue $environment "GOOGLE_CLIENT_SECRET"
@@ -116,11 +119,19 @@ if ($LASTEXITCODE -ne 0) {
 
 Invoke-Checked kubectl apply -f (Join-Path $repoRoot "k8s\api.yaml")
 Invoke-Checked kubectl apply -f (Join-Path $repoRoot "k8s\worker.yaml")
+# The local kind image uses a stable tag. Restart the deployments so an
+# unchanged manifest still replaces existing pods with the image loaded above.
+Invoke-Checked kubectl rollout restart deployment/inbox2done-api -n $Namespace
+Invoke-Checked kubectl rollout restart deployment/inbox2done-worker -n $Namespace
 Invoke-Checked kubectl rollout status deployment/inbox2done-api -n $Namespace --timeout=240s
 Invoke-Checked kubectl rollout status deployment/inbox2done-worker -n $Namespace --timeout=240s
+Invoke-Checked kubectl apply -f (Join-Path $repoRoot "k8s\web.yaml")
+Invoke-Checked kubectl rollout restart deployment/inbox2done-web -n $Namespace
+Invoke-Checked kubectl rollout status deployment/inbox2done-web -n $Namespace --timeout=120s
 
 Write-Host ""
 Write-Host "Inbox2Done is deployed to Kubernetes."
 & kubectl get pods,services,persistentvolumeclaims,jobs -n $Namespace
 Write-Host ""
 Write-Host "Run: kubectl port-forward service/inbox2done-api 8000:80 -n $Namespace"
+Write-Host "App: kubectl port-forward service/inbox2done-web 8080:80 -n $Namespace"

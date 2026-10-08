@@ -1,0 +1,61 @@
+name: Verify application
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - run: pip install -e '.[dev]'
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-test-results
+          path: client/test-results
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.docker.example .env.docker
+      - run: docker compose --env-file .env.docker config --quiet
+      - run: docker compose --env-file .env.docker up --build --wait --wait-timeout 180
+      - run: curl --fail http://localhost:8080/health/ready
+      - run: curl --fail http://localhost:8080/api/auth/google/status
+      - run: docker compose --env-file .env.docker exec -T worker celery -A app.worker.celery_app:celery_app inspect ping --timeout=10
+      - if: failure()
+        run: docker compose --env-file .env.docker logs
+      - if: always()
+        run: docker compose --env-file .env.docker down
