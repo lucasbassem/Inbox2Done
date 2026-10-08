@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class GeneratedActionItem(BaseModel):
     title: str = Field(min_length=1, max_length=500)
     description: str = ""
-    owner: str | None = None
+    owner: str | None = Field(default=None, max_length=320)
     due_at: datetime | None = None
     priority: Literal["low", "medium", "high", "urgent"] = "medium"
 
@@ -90,5 +90,5 @@ class ThreadAnalysisQueuedResponse(BaseModel):
 class ActionItemUpdate(BaseModel):
     status: Literal["open", "in_progress", "completed"] | None = None
     priority: Literal["low", "medium", "high", "urgent"] | None = None
-    owner: str | None = None
+    owner: str | None = Field(default=None, max_length=320)
     due_at: datetime | None = None

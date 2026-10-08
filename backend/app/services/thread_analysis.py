@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.config import settings
 from app.core.exceptions import AppError
 from app.models.action_item import ActionItem
+from app.models.email_message import EmailMessage
 from app.models.email_thread import EmailThread
 from app.models.suggested_reply import SuggestedReply
 from app.models.thread_analysis import ThreadAnalysis
@@ -166,10 +167,15 @@ def analyze_thread(
     thread_id: int,
     force: bool = False,
     client: OpenAI | None = None,
+    message_ids: list[str] | None = None,
 ) -> ThreadAnalysis:
+    messages = EmailThread.messages
+    if message_ids is not None:
+        messages = messages.and_(EmailMessage.gmail_message_id.in_(message_ids))
     statement = (
         select(EmailThread)
-        .options(selectinload(EmailThread.messages))
+        .execution_options(populate_existing=True)
+        .options(selectinload(messages))
         .where(EmailThread.id == thread_id)
     )
 
@@ -181,6 +187,13 @@ def analyze_thread(
             error="thread_not_found",
             message="The requested email thread was not found.",
             details={"thread_id": thread_id},
+        )
+
+    if not thread.is_primary_inbox:
+        raise AppError(
+            status_code=422,
+            error="thread_not_in_primary_inbox",
+            message="Only synced Primary inbox conversations can be analyzed. Sync Gmail first.",
         )
 
     if not thread.messages:
@@ -203,7 +216,7 @@ def analyze_thread(
             ThreadAnalysis.thread_id == thread_id,
             ThreadAnalysis.source_fingerprint == source_fingerprint,
         )
-        .order_by(ThreadAnalysis.created_at.desc())
+        .order_by(ThreadAnalysis.created_at.desc(), ThreadAnalysis.id.desc())
     )
 
     if existing_analysis is not None and not force:

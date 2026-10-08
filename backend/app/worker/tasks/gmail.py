@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from app.core.exceptions import AppError
 from app.db.session import SessionLocal
 from app.models.background_job import (
     BackgroundJob,
@@ -54,7 +55,11 @@ def sync_gmail_task(
 
             if failed_job is not None:
                 failed_job.status = BackgroundJobStatus.FAILED.value
-                failed_job.error_message = str(exc)[:2000]
+                failed_job.error_message = (
+                    exc.message
+                    if isinstance(exc, AppError)
+                    else "Gmail sync failed. Reconnect Google and try again."
+                )
                 failed_job.completed_at = datetime.now(UTC)
                 database.commit()
 

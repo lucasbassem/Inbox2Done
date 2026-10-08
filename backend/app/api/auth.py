@@ -14,7 +14,6 @@ from app.models.oauth_token import OAuthToken
 from app.models.user import User
 from app.schemas.auth import (
     GoogleConnectionStatus,
-    GoogleOAuthCallbackResponse,
 )
 from app.services.google_oauth import oauth
 
@@ -65,14 +64,11 @@ async def google_login(request: Request) -> RedirectResponse:
     )
 
 
-@router.get(
-    "/callback",
-    response_model=GoogleOAuthCallbackResponse,
-)
+@router.get("/callback")
 async def google_callback(
     request: Request,
     database: Annotated[Session, Depends(get_db)],
-) -> GoogleOAuthCallbackResponse:
+) -> RedirectResponse:
     google = oauth.create_client("google")
 
     if google is None:
@@ -169,14 +165,10 @@ async def google_callback(
     database.commit()
     database.refresh(user)
 
+    request.session.clear()
     request.session["user_id"] = user.id
 
-    return GoogleOAuthCallbackResponse(
-        connected=True,
-        user_id=user.id,
-        email=user.email,
-        display_name=user.display_name,
-    )
+    return RedirectResponse(settings.frontend_origin, status_code=303)
 
 
 @router.get(
@@ -218,3 +210,9 @@ def google_status(
         display_name=user.display_name,
         expires_at=oauth_token.expires_at,
     )
+
+
+@router.post("/logout")
+def logout(request: Request) -> dict[str, bool]:
+    request.session.clear()
+    return {"connected": False}

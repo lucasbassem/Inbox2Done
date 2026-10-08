@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -14,6 +14,9 @@ if TYPE_CHECKING:
 
 class EmailMessage(Base):
     __tablename__ = "email_messages"
+    __table_args__ = (
+        Index("ix_email_messages_gmail_message_id", "thread_id", "gmail_message_id", unique=True),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
@@ -28,8 +31,6 @@ class EmailMessage(Base):
 
     gmail_message_id: Mapped[str] = mapped_column(
         String(255),
-        unique=True,
-        index=True,
         nullable=False,
     )
 

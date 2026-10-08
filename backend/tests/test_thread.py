@@ -10,6 +10,7 @@ from app.db.session import get_db
 from app.main import app
 from app.models.email_message import EmailMessage
 from app.models.email_thread import EmailThread
+from tests.session_helpers import session_cookie
 
 test_engine = create_engine(
     "sqlite://",
@@ -45,8 +46,10 @@ def clear_threads() -> None:
         database.query(EmailThread).delete()
         database.commit()
 
+
 @pytest.fixture(autouse=True)
 def isolate_thread_database():
+    client.cookies.set("session", session_cookie(1))
     previous_override = app.dependency_overrides.get(get_db)
 
     app.dependency_overrides[get_db] = override_get_db
@@ -55,6 +58,7 @@ def isolate_thread_database():
     try:
         yield
     finally:
+        client.cookies.clear()
         clear_threads()
 
         if previous_override is None:
@@ -71,6 +75,7 @@ def seed_threads(count: int = 5) -> None:
             database.add(
                 EmailThread(
                     user_id=1,
+                    is_primary_inbox=True,
                     gmail_thread_id=f"gmail-thread-{index}",
                     subject=f"Thread {index}",
                     snippet=f"Snippet {index}",

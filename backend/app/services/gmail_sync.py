@@ -8,7 +8,7 @@ from typing import Any
 from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import Resource, build
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -139,6 +139,11 @@ def create_google_credentials(
         client_id=settings.google_client_id,
         client_secret=settings.google_client_secret,
         scopes=scopes,
+        expiry=(
+            oauth_token.expires_at.replace(tzinfo=None)
+            if oauth_token.expires_at is not None
+            else None
+        ),
     )
 
     return credentials
@@ -187,7 +192,9 @@ def sync_gmail_threads(
     database: Session,
     user_id: int,
     max_threads: int = 10,
-) -> dict[str, int]:
+    start_at: datetime | None = None,
+    end_at: datetime | None = None,
+) -> dict[str, Any]:
     oauth_token = database.scalar(
         select(OAuthToken).where(
             OAuthToken.user_id == user_id,
@@ -204,20 +211,47 @@ def sync_gmail_threads(
 
     gmail = build_gmail_service(database, oauth_token)
 
-    response = (
-        gmail.users()
-        .threads()
-        .list(
-            userId="me",
-            maxResults=max_threads,
+    selected_ids: set[str] | None = None
+    if start_at is not None and end_at is not None:
+        selected_ids = set()
+        thread_ids = {}
+        page_token = None
+        while True:
+            query = (
+                f"in:inbox category:primary after:{int(start_at.timestamp()) - 1} "
+                f"before:{int(end_at.timestamp())}"
+            )
+            response = (
+                gmail.users()
+                .messages()
+                .list(userId="me", maxResults=500, q=query, pageToken=page_token)
+                .execute()
+            )
+            for message in response.get("messages", []):
+                selected_ids.add(message["id"])
+                thread_ids[message["threadId"]] = None
+            page_token = response.get("nextPageToken")
+            if not page_token:
+                break
+        thread_summaries = [{"id": value} for value in thread_ids]
+    else:
+        response = (
+            gmail.users()
+            .threads()
+            .list(userId="me", maxResults=max_threads, q="in:inbox category:primary")
+            .execute()
         )
-        .execute()
+        thread_summaries = response.get("threads", [])
+        if not isinstance(thread_summaries, list):
+            thread_summaries = []
+    synced_thread_ids: list[int] = []
+    synced_message_ids: list[str] = []
+
+    # Replace the visible snapshot only when the whole sync commits successfully.
+    # Keep historical mail and analyses stored, but outside this Primary window.
+    database.execute(
+        update(EmailThread).where(EmailThread.user_id == user_id).values(is_primary_inbox=False)
     )
-
-    thread_summaries = response.get("threads", [])
-
-    if not isinstance(thread_summaries, list):
-        thread_summaries = []
 
     threads_created = 0
     threads_updated = 0
@@ -258,6 +292,8 @@ def sync_gmail_threads(
             gmail_message_id = gmail_message.get("id")
             payload = gmail_message.get("payload", {})
 
+            if selected_ids is not None and gmail_message_id not in selected_ids:
+                continue
             if not isinstance(gmail_message_id, str):
                 continue
 
@@ -267,6 +303,9 @@ def sync_gmail_threads(
             headers = get_headers(payload)
             body_text, body_html, attachments = extract_message_content(payload)
             sent_at = parse_internal_date(gmail_message.get("internalDate"))
+            if start_at is not None and end_at is not None:
+                if sent_at is None or not start_at <= sent_at < end_at:
+                    continue
 
             parsed_messages.append(
                 {
@@ -314,27 +353,34 @@ def sync_gmail_threads(
             email_thread = EmailThread(
                 user_id=user_id,
                 gmail_thread_id=gmail_thread_id,
+                is_primary_inbox=True,
                 subject=latest_message["subject"],
                 snippet=str(gmail_thread.get("snippet", "")),
                 participants=", ".join(participants),
                 message_count=len(parsed_messages),
-                latest_message_at=latest_message["sent_at"],
+                latest_message_at=latest_message["sent_at"] or datetime.now(UTC),
             )
             database.add(email_thread)
             database.flush()
             threads_created += 1
         else:
+            email_thread.is_primary_inbox = True
             email_thread.subject = latest_message["subject"]
             email_thread.snippet = str(gmail_thread.get("snippet", ""))
             email_thread.participants = ", ".join(participants)
             email_thread.message_count = len(parsed_messages)
-            email_thread.latest_message_at = latest_message["sent_at"]
+            email_thread.latest_message_at = (
+                latest_message["sent_at"] or email_thread.latest_message_at
+            )
             threads_updated += 1
 
+        synced_thread_ids.append(email_thread.id)
+        synced_message_ids.extend(m["gmail_message_id"] for m in parsed_messages)
         for parsed_message in parsed_messages:
             email_message = database.scalar(
                 select(EmailMessage).where(
-                    EmailMessage.gmail_message_id == parsed_message["gmail_message_id"]
+                    EmailMessage.thread_id == email_thread.id,
+                    EmailMessage.gmail_message_id == parsed_message["gmail_message_id"],
                 )
             )
 
@@ -360,10 +406,14 @@ def sync_gmail_threads(
 
     database.commit()
 
-    return {
+    result = {
         "threads_fetched": len(thread_summaries),
         "threads_created": threads_created,
         "threads_updated": threads_updated,
         "messages_created": messages_created,
         "messages_updated": messages_updated,
     }
+
+    if selected_ids is not None:
+        return {**result, "thread_ids": synced_thread_ids, "message_ids": synced_message_ids}
+    return result

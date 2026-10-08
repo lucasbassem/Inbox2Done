@@ -4,6 +4,7 @@ from app.models.background_job import (
     BackgroundJobStatus,
     BackgroundJobType,
 )
+from app.models.billing_event import BillingEvent
 from app.models.email_message import EmailMessage
 from app.models.email_thread import EmailThread
 from app.models.oauth_token import OAuthToken
@@ -15,6 +16,7 @@ from app.models.user import User
 
 __all__ = [
     "ActionItem",
+    "BillingEvent",
     "BackgroundJob",
     "BackgroundJobStatus",
     "BackgroundJobType",

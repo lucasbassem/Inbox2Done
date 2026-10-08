@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.token_encryption import EncryptedToken
 from app.db.base import Base
 
 if TYPE_CHECKING:
@@ -40,12 +41,12 @@ class OAuthToken(Base):
     )
 
     access_token: Mapped[str] = mapped_column(
-        Text,
+        EncryptedToken,
         nullable=False,
     )
 
     refresh_token: Mapped[str | None] = mapped_column(
-        Text,
+        EncryptedToken,
         nullable=True,
     )
 

@@ -74,6 +74,7 @@ def create_thread() -> int:
     with TestSessionLocal() as database:
         thread = EmailThread(
             user_id=1,
+            is_primary_inbox=True,
             gmail_thread_id="openai-thread-001",
             subject="Submit project report",
             snippet="Please submit the report by Friday.",

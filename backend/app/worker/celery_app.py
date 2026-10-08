@@ -9,6 +9,7 @@ celery_app = Celery(
     include=[
         "app.worker.tasks.gmail",
         "app.worker.tasks.analysis",
+        "app.worker.tasks.today",
     ],
 )
 

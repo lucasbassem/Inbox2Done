@@ -9,12 +9,11 @@ from sqlalchemy.orm import Session
 from app.models.subscription import Subscription
 from app.models.usage_event import UsageEvent
 
-
 THREAD_ANALYSIS_EVENT = "thread_analysis"
 
 FREE_DAILY_ANALYSIS_LIMIT = 1
 
-# "Unlimited" to the customer, but with a high abuse-protection ceiling.
+# Display the actual limit to customers.
 PRO_DAILY_ANALYSIS_LIMIT = 100
 
 
@@ -30,9 +29,7 @@ class UsageLimitExceeded(Exception):
         self.limit = limit
         self.used = used
 
-        super().__init__(
-            f"Daily {plan} analysis limit of {limit} has been reached."
-        )
+        super().__init__(f"Daily {plan} analysis limit of {limit} has been reached.")
 
 
 @dataclass(frozen=True)
@@ -41,6 +38,7 @@ class EntitlementResult:
     limit: int
     used: int
     remaining: int
+    usage_event_id: int | None = None
 
 
 def _utc_day_bounds(now: datetime) -> tuple[datetime, datetime]:
@@ -64,9 +62,7 @@ def get_or_create_subscription(
     user_id: int,
 ) -> Subscription:
     subscription = database.scalar(
-        select(Subscription)
-        .where(Subscription.user_id == user_id)
-        .with_for_update()
+        select(Subscription).where(Subscription.user_id == user_id).with_for_update()
     )
 
     if subscription is not None:
@@ -121,16 +117,9 @@ def consume_thread_analysis(
         user_id,
     )
 
-    is_pro = (
-        subscription.plan == "pro"
-        and subscription.status in {"active", "trialing"}
-    )
+    is_pro = subscription.plan == "pro" and subscription.status in {"active", "trialing"}
 
-    limit = (
-        PRO_DAILY_ANALYSIS_LIMIT
-        if is_pro
-        else FREE_DAILY_ANALYSIS_LIMIT
-    )
+    limit = PRO_DAILY_ANALYSIS_LIMIT if is_pro else FREE_DAILY_ANALYSIS_LIMIT
 
     used = get_daily_analysis_usage(
         database,
@@ -145,13 +134,13 @@ def consume_thread_analysis(
             used=used,
         )
 
-    database.add(
-        UsageEvent(
-            user_id=user_id,
-            event_type=THREAD_ANALYSIS_EVENT,
-            quantity=1,
-        )
+    event = UsageEvent(
+        user_id=user_id,
+        event_type=THREAD_ANALYSIS_EVENT,
+        quantity=1,
+        created_at=now or datetime.now(UTC),
     )
+    database.add(event)
 
     database.flush()
 
@@ -160,40 +149,44 @@ def consume_thread_analysis(
         limit=limit,
         used=used + 1,
         remaining=max(limit - used - 1, 0),
+        usage_event_id=event.id,
     )
+
+
 def get_thread_analysis_status(
-        database: Session,
-        user_id: int,
-        *,
-        now: datetime | None = None,
-    ) -> EntitlementResult:
-        subscription = database.scalar(
-            select(Subscription).where(
-                Subscription.user_id == user_id
-            )
-        )
+    database: Session,
+    user_id: int,
+    *,
+    now: datetime | None = None,
+) -> EntitlementResult:
+    subscription = database.scalar(select(Subscription).where(Subscription.user_id == user_id))
 
-        is_pro = (
-            subscription is not None
-            and subscription.plan == "pro"
-            and subscription.status in {"active", "trialing"}
-        )
+    is_pro = (
+        subscription is not None
+        and subscription.plan == "pro"
+        and subscription.status in {"active", "trialing"}
+    )
 
-        limit = (
-            PRO_DAILY_ANALYSIS_LIMIT
-            if is_pro
-            else FREE_DAILY_ANALYSIS_LIMIT
-        )
+    limit = PRO_DAILY_ANALYSIS_LIMIT if is_pro else FREE_DAILY_ANALYSIS_LIMIT
 
-        used = get_daily_analysis_usage(
-            database,
-            user_id,
-            now=now,
-        )
+    used = get_daily_analysis_usage(
+        database,
+        user_id,
+        now=now,
+    )
 
-        return EntitlementResult(
-            plan="pro" if is_pro else "free",
-            limit=limit,
-            used=used,
-            remaining=max(limit - used, 0),
-        )
+    return EntitlementResult(
+        plan="pro" if is_pro else "free",
+        limit=limit,
+        used=used,
+        remaining=max(limit - used, 0),
+    )
+
+
+def refund_analysis_usage(database: Session, job) -> None:
+    """Delete only this job's reservation; repeated refunds are harmless."""
+    event_id = job.parameters.get("usage_event_id")
+    if event_id is not None:
+        event = database.get(UsageEvent, event_id)
+        if event is not None and event.user_id == job.user_id:
+            database.delete(event)

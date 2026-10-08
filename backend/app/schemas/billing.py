@@ -6,3 +6,9 @@ class BillingStatusResponse(BaseModel):
     daily_limit: int
     used_today: int
     remaining_today: int
+    checkout_available: bool = False
+    portal_available: bool = False
+
+
+class CheckoutSessionResponse(BaseModel):
+    checkout_url: str

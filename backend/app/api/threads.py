@@ -1,9 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.auth import require_user_id
 from app.core.exceptions import AppError
 from app.db.session import get_db
 from app.models.email_thread import EmailThread
@@ -21,13 +22,16 @@ router = APIRouter(
 
 @router.get("", response_model=EmailThreadPage)
 def list_threads(
+    request: Request,
     database: Annotated[Session, Depends(get_db)],
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
-    user_id: Annotated[int, Query(ge=1)] = 1,
 ) -> EmailThreadPage:
+    user_id = require_user_id(request)
     total_statement = (
-        select(func.count()).select_from(EmailThread).where(EmailThread.user_id == user_id)
+        select(func.count())
+        .select_from(EmailThread)
+        .where(EmailThread.user_id == user_id, EmailThread.is_primary_inbox.is_(True))
     )
 
     total = database.scalar(total_statement) or 0
@@ -35,7 +39,7 @@ def list_threads(
 
     thread_statement = (
         select(EmailThread)
-        .where(EmailThread.user_id == user_id)
+        .where(EmailThread.user_id == user_id, EmailThread.is_primary_inbox.is_(True))
         .order_by(
             EmailThread.latest_message_at.desc(),
             EmailThread.id.desc(),
@@ -59,12 +63,17 @@ def list_threads(
 @router.get("/{thread_id}", response_model=EmailThreadDetailResponse)
 def get_thread(
     thread_id: int,
+    request: Request,
     database: Annotated[Session, Depends(get_db)],
 ) -> EmailThreadDetailResponse:
     statement = (
         select(EmailThread)
         .options(selectinload(EmailThread.messages))
-        .where(EmailThread.id == thread_id)
+        .where(
+            EmailThread.id == thread_id,
+            EmailThread.user_id == require_user_id(request),
+            EmailThread.is_primary_inbox.is_(True),
+        )
     )
 
     thread = database.scalar(statement)

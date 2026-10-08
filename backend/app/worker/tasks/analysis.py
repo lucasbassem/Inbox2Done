@@ -2,12 +2,14 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import selectinload
 
+from app.core.exceptions import AppError
 from app.db.session import SessionLocal
 from app.models.background_job import (
     BackgroundJob,
     BackgroundJobStatus,
 )
 from app.models.thread_analysis import ThreadAnalysis
+from app.services.entitlements import refund_analysis_usage
 from app.services.thread_analysis import analyze_thread
 from app.worker.celery_app import celery_app
 
@@ -81,7 +83,12 @@ def analyze_thread_task(
 
             if failed_job is not None:
                 failed_job.status = BackgroundJobStatus.FAILED.value
-                failed_job.error_message = str(exc)[:2000]
+                failed_job.error_message = (
+                    exc.message
+                    if isinstance(exc, AppError)
+                    else "Analysis failed. Please try again."
+                )
+                refund_analysis_usage(database, failed_job)
                 failed_job.completed_at = datetime.now(UTC)
                 database.commit()
 
